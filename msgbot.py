@@ -86,6 +86,13 @@ class MsgBotUserConfig(object):
 
         return True
 
+    def HandleDelete(self, user_id, config_key):
+        if config_key not in self._config[user_id] or config_key == 'session':
+            return False
+
+        self._config[user_id].pop(config_key)
+        return True
+
 # msgbot's ID as an environment variable
 BOT_ID = os.environ.get("BOT_ID")
 BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
@@ -128,6 +135,16 @@ def handle_message(msg, user, ts, channel):
             return
 
         if user_config.HandleConfig(user, opt[1], opt[2]):
+            attempt_delete(user, ts, channel)
+        return
+    # Check for '/delete'
+    if msg.startswith('/delete'):
+        opt = [str(o) for o in msg.split()]
+        print opt
+        if len(opt) < 2:
+            return
+
+        if user_config.HandleDelete(user, opt[1]):
             attempt_delete(user, ts, channel)
         return
 
