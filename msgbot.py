@@ -19,6 +19,7 @@ class MsgBotUserConfig(object):
             'thumb_url',
             'author_name',
             'author_icon',
+            'image_url',
             'footer',
             'footer_icon',
             'ts'
