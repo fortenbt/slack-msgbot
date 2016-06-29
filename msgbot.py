@@ -127,6 +127,19 @@ def handle_message(msg, user, ts, channel):
         user_config.AddUser(user)
         print user_config
 
+    if msg.startswith('/save'):
+        d = user_config.config
+        for id in d:
+            try:
+                d[id].pop('session')
+            except:
+                pass
+        try:
+            with open('saved.json', 'wb') as f:
+                json.dump(d, f)
+        except Exception as e:
+            print 'Error saving configuration: {0}'.format(e)
+
     # Check for '/config'
     if msg.startswith('/config'):
 
