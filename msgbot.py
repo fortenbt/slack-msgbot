@@ -124,6 +124,8 @@ def handle_message(msg, user, ts, channel):
 
         # we need pure ascii to use .translate with the deletechars argument
         opt = [str(o) for o in msg.split()]
+        if len(opt) < 3:
+            return
 
         if user_config.HandleConfig(user, opt[1], opt[2]):
             attempt_delete(user, ts, channel)
