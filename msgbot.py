@@ -170,7 +170,7 @@ def handle_message(msg, user, ts, channel):
     if msg.startswith('/print'):
         msg = ""
         for key in user_config[user]:
-            if key in ['token'] or key in ['session']: #don't print these
+            if key in ['token', 'session']: #don't print these
                 continue
             
             #add a formatted line to the current message with the current config key and it's value
