@@ -6,9 +6,17 @@ here: https://github.com/slackhq/python-slackclient
 This bot is meant to facilitate the creation of custom messages with
 attachments directly from Slack's message bar.
 
-Usage
+### /print
+**Usage**
 
-msgbot /config [option] |value|
+`msgbot /print`
+
+
+### /config
+
+**Usage**
+
+`msgbot /config [option] |value|`
 
 Configuration Options:
 
