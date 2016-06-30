@@ -148,7 +148,7 @@ def handle_message(msg, user, ts, channel):
         if len(opt) < 3:
             return
 
-        if user_config.HandleConfig(user, opt[1], ' '.join(opt[2:]):
+        if user_config.HandleConfig(user, opt[1], ' '.join(opt[2:])):
             attempt_delete(user, ts, channel)
         return
     # Check for '/delete'
