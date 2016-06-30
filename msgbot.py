@@ -144,16 +144,16 @@ def handle_message(msg, user, ts, channel):
     if msg.startswith('/config'):
 
         # we need pure ascii to use .translate with the deletechars argument
-        opt = [str(o) for o in msg.split()]
+        opt = [o.encode('utf-8') for o in msg.split()]
         if len(opt) < 3:
             return
 
-        if user_config.HandleConfig(user, opt[1], opt[2]):
+        if user_config.HandleConfig(user, opt[1], ' '.join(opt[2:]):
             attempt_delete(user, ts, channel)
         return
     # Check for '/delete'
     if msg.startswith('/delete'):
-        opt = [str(o) for o in msg.split()]
+        opt = [o.encode('utf-8') for o in msg.split()]
         print opt
         if len(opt) < 2:
             return
@@ -195,7 +195,7 @@ def parse_slack_output(slack_rtm_output):
         for output in output_list:
             if output and 'text' in output and output['text'].startswith('msgbot'):
                 username = (u.name for u in botsc.server.users if output['user']==u.id).next()
-                print '<{0}> {1}: {2}'.format(output['channel'], username, output['text'])
+                print '<{0}> {1}: {2}'.format(output['channel'], username, output['text'].encode('utf-8'))
                 # return text after the msgbot text, leading whitespace removed
                 return output['text'][6:].strip(),\
                        output['user'],\
