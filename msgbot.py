@@ -161,8 +161,22 @@ def handle_message(msg, user, ts, channel):
         if user_config.HandleDelete(user, opt[1]):
             attempt_delete(user, ts, channel)
         return
+    
+    # Check for '/load'
+    if msg.startswith('/load'):
+        msg = "Load is not a currently a implemented command because Brian is bad and should feel bad"
 
-    # No config, so this is a normal message that should be formatted
+    # Check for '/print' - if exists, throw away original message and replace with string dump of current config
+    if msg.startswith('/print'):
+        msg = ""
+        for key in user_config[user]:
+            if key in ['token'] or key in ['session']: #don't print these
+                continue
+            
+            #add a formatted line to the current message with the current config key and it's value
+            msg.join(key, ": ", user_config[user][key]) 
+
+    # No config, so this is a normal message that should be formatted (or the result of a /print)
     fb = user_config[user].get('fallback')
     if not fb:
         fb = msg
@@ -181,7 +195,6 @@ def handle_message(msg, user, ts, channel):
     attempt_delete(user, ts, channel)
 
     attempt_postMessage(user, channel, att)
-
 
 
 def parse_slack_output(slack_rtm_output):
