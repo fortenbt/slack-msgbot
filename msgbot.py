@@ -8,6 +8,7 @@ from slackclient import SlackClient
 
 class MsgBotUserConfig(object):
     def __init__(self, bot_client, cfg_filename = os.getcwd() + os.path.normpath('/msgbotuserconfig.json')):
+        self._cfg_filename = cfg_filename
         self._template = {
             'color'  : '0000ff', # default Blue
             'session': None,
@@ -65,10 +66,25 @@ class MsgBotUserConfig(object):
     def config(self):
         return self._config
 
+    def WriteConfig(self):
+        cfg = self._config.copy()
+        for id in cfg:
+            try:
+                cfg[id] = self._config[id].copy()
+                cfg[id].pop('session')
+            except:
+                pass
+        try:
+            with open(self._cfg_filename, 'wb') as f:
+                json.dump(cfg, f)
+        except Exception as e:
+            print 'Error saving configuration: {0}'.format(e)
+
     def AddUser(self, user_id):
         self._config[user_id] = {}
         for key in self._template:
             self._config[user_id][key] = self._template[key]
+            self.WriteConfig()
 
     def IsPresent(self, user_id):
         return user_id in self._config
@@ -85,6 +101,8 @@ class MsgBotUserConfig(object):
             except:
                 self._config[user_id]['session'] = None
 
+        self.WriteConfig()
+
         return True
 
     def HandleDelete(self, user_id, config_key):
@@ -92,6 +110,8 @@ class MsgBotUserConfig(object):
             return False
 
         self._config[user_id].pop(config_key)
+
+        self.WriteConfig()
         return True
 
 # msgbot's ID as an environment variable
@@ -127,18 +147,6 @@ def handle_message(msg, user, ts, channel):
         user_config.AddUser(user)
         print user_config
 
-    if msg.startswith('/save'):
-        d = user_config.config
-        for id in d:
-            try:
-                d[id].pop('session')
-            except:
-                pass
-        try:
-            with open('saved.json', 'wb') as f:
-                json.dump(d, f)
-        except Exception as e:
-            print 'Error saving configuration: {0}'.format(e)
 
     # Check for '/config'
     if msg.startswith('/config'):
