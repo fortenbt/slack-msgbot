@@ -8,7 +8,7 @@ attachments directly from Slack's message bar.
 
 Usage
 
-msgbot /config [option] <value>
+msgbot /config [option] |value|
 
 Configuration Options:
 
