@@ -115,8 +115,16 @@ class MsgBotUserConfig(object):
         return True
 
 # msgbot's ID as an environment variable
-BOT_ID = os.environ.get("BOT_ID")
-BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
+BOT_ID = SLACK_BOT_ID
+BOT_TOKEN = SLACK_BOT_TOKEN
+BOT_KEYPHRASE = SLACK_BOT_KEYPHRASE
+
+if not BOT_ID:
+    BOT_ID = os.environ.get("BOT_ID")
+
+if not BOT_TOKEN:
+    BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
+
 botsc = SlackClient(BOT_TOKEN)
 user_config = MsgBotUserConfig(botsc)
 
@@ -190,9 +198,10 @@ def handle_message(msg, user, ts, channel):
         for key in user_config[user]:
             if key in ['token', 'session']: #don't print these
                 continue
-            
-            #add a formatted line to the current message with the current config key and it's value
-            msg.join(key, ": ", user_config[user][key], "\n") 
+
+            #add a formatted line to the current message with the current
+            #config key and it's value
+            msg += ''.join([key, ": ", user_config[user][key], "\n"])
 
     # No config, so this is a normal message that should be formatted (or the result of a /print)
     fb = user_config[user].get('fallback')
@@ -214,7 +223,6 @@ def handle_message(msg, user, ts, channel):
 
     attempt_postMessage(user, channel, att)
 
-
 def parse_slack_output(slack_rtm_output):
     """
         The Slack Real Time Messaging API is an events firehose.
@@ -224,16 +232,15 @@ def parse_slack_output(slack_rtm_output):
     output_list = slack_rtm_output
     if output_list and len(output_list) > 0:
         for output in output_list:
-            if output and 'text' in output and output['text'].startswith('msgbot'):
-                username = (u.name for u in botsc.server.users if output['user']==u.id).next()
+            if output and 'text' in output and output['text'].startswith(BOT_KEYPHRASE):
+                username = (u.name for u in botsc.server.users if output['user'] == u.id).next()
                 print '<{0}> {1}: {2}'.format(output['channel'], username, output['text'].encode('utf-8'))
                 # return text after the msgbot text, leading whitespace removed
-                return output['text'][6:].strip(),\
+                return output['text'][len(BOT_KEYPHRASE):].strip(),\
                        output['user'],\
                        output['ts'],\
                        output['channel']
     return None, None, None, None
-
 
 if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose

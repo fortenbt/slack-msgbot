@@ -1,0 +1,10 @@
+####################
+# Manual Additions #
+####################
+launch.py
+*.sln
+.vs/
+sb_venv/
+*.pyproj
+*.json
+*.config
