@@ -159,6 +159,7 @@ def handle_message(msg, user, ts, channel):
         if user_config.HandleConfig(user, opt[1], ' '.join(opt[2:])):
             attempt_delete(user, ts, channel)
         return
+
     # Check for '/delete'
     if msg.startswith('/delete'):
         opt = [o.encode('utf-8') for o in msg.split()]
@@ -169,8 +170,31 @@ def handle_message(msg, user, ts, channel):
         if user_config.HandleDelete(user, opt[1]):
             attempt_delete(user, ts, channel)
         return
+    
+    # Check for '/load'
+    if msg.startswith('/load'):
+        try:
+            user_config[user] = json.load(msg)
+            
+            #if we got here, the json.load call worked so delete the message and cut out.
+            attempt_delete(user, ts, channel)
 
-    # No config, so this is a normal message that should be formatted
+            return
+        except Exception as ex:
+            #if we failed, go ahead and usurp the message and drop down into printing it below
+            msg = "Unable to load configuration from JSON.\nEnsure valid JSON before trying again"
+
+    # Check for '/print' - if exists, throw away original message and replace with string dump of current config
+    if msg.startswith('/print'):
+        msg = "" #clear out current msg param so we can pass it along into the normal message display below
+        for key in user_config[user]:
+            if key in ['token', 'session']: #don't print these
+                continue
+            
+            #add a formatted line to the current message with the current config key and it's value
+            msg.join(key, ": ", user_config[user][key], "\n") 
+
+    # No config, so this is a normal message that should be formatted (or the result of a /print)
     fb = user_config[user].get('fallback')
     if not fb:
         fb = msg
@@ -189,7 +213,6 @@ def handle_message(msg, user, ts, channel):
     attempt_delete(user, ts, channel)
 
     attempt_postMessage(user, channel, att)
-
 
 
 def parse_slack_output(slack_rtm_output):
