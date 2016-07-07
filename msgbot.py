@@ -125,6 +125,9 @@ if not BOT_ID:
 if not BOT_TOKEN:
     BOT_TOKEN = os.environ.get('SLACK_BOT_TOKEN')
 
+if not SLACK_BOT_KEYPHRASE:
+    SLACK_BOT_KEYPHRASE = 'msgbot'
+
 botsc = SlackClient(BOT_TOKEN)
 user_config = MsgBotUserConfig(botsc)
 
