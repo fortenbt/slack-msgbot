@@ -1,0 +1,18 @@
+
+#What's this slackbot's token? Uncomment the line below and replace the sample text
+#	with the correct token! If this is not set, you better have the SLACK_BOT_TOKEN 
+#	environment variable set 
+#SLACK_BOT_TOKEN = 'xoxb-00000000000-Aa99a9Aa9a999a9a99aaA9aa'
+
+#Okay, how is this bot triggered? We traditionally use 'msgbot' for the keyphrase
+#	but, hey, to each their own. Psst. By the way, if this is missing, it defaults to
+#	'msgbot' so, go on, be lazy.
+#SLACK_BOT_KEYPHRASE = 'b'
+
+#Variable SLACK_BOT_ID corresponds to the ID of the slackbot as configured in the 
+#	team... see below for an example. If this is missing, we'll check for the 
+#	BOT_ID environment variable as backup.
+#SLACK_BOT_ID = 'msgbot'
+
+#launch the msgbot with the above config (don't worry, it knows about these vars)
+execfile("msgbot.py")
