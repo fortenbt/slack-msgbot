@@ -2,9 +2,14 @@ import os
 import time
 import json
 from slackclient import SlackClient
+#from collections import namedtuple
 
 # TODO: Restructure the globals and __main__ portion of this file
 # into classes and object instantiation. Make everything cleaner.
+
+# Was going to make a tuple to handle keeping the commands, help text and a function 
+#    ptr for the handler but at this point, it's overkill. backing off of this -brs 20160715
+# BotCommand = namedtuple("BotCommand", "HelpText Handler")
 
 class MsgBotUserConfig(object):
     def __init__(self, bot_client, cfg_filename = os.getcwd() + os.path.normpath('/msgbotuserconfig.json')):
@@ -130,6 +135,13 @@ if not SLACK_BOT_KEYPHRASE:
 
 botsc = SlackClient(BOT_TOKEN)
 user_config = MsgBotUserConfig(botsc)
+bot_help = {}
+
+CONFIG_CMD = "/config"
+PRINT_CMD = "/print"
+DELETE_CMD = "/delete"
+LOAD_CMD = "/load"
+HELP_CMD = "/help"
 
 def attempt_delete(user, ts, channel):
     if not user_config[user].get('session'):
@@ -149,10 +161,20 @@ def attempt_postMessage(user, channel, att):
         attachments = json.dumps(att)
     )
 
+def format_generic_help_message():
+    message = "Available commands. For more information use `/help [command]`"
+    for key, value in bot_help.iteritems() :
+        message += ''.join([key, "\n"])
+
+    return message
+
 def handle_message(msg, user, ts, channel):
     """
         Receives message directed at the bot and formats them accordingly.
     """
+
+    delete_message = True
+
     # Add the user
     if not user_config.IsPresent(user):
         user_config.AddUser(user)
@@ -160,7 +182,7 @@ def handle_message(msg, user, ts, channel):
 
 
     # Check for '/config'
-    if msg.startswith('/config'):
+    if msg.startswith(CONFIG_CMD):
 
         # we need pure ascii to use .translate with the deletechars argument
         opt = [o.encode('utf-8') for o in msg.split()]
@@ -172,7 +194,7 @@ def handle_message(msg, user, ts, channel):
         return
 
     # Check for '/delete'
-    if msg.startswith('/delete'):
+    elif msg.startswith(DELETE_CMD):
         opt = [o.encode('utf-8') for o in msg.split()]
         print opt
         if len(opt) < 2:
@@ -183,7 +205,7 @@ def handle_message(msg, user, ts, channel):
         return
     
     # Check for '/load'
-    if msg.startswith('/load'):
+    elif msg.startswith(LOAD_CMD):
         try:
             user_config[user] = json.load(msg)
             
@@ -196,7 +218,7 @@ def handle_message(msg, user, ts, channel):
             msg = "Unable to load configuration from JSON.\nEnsure valid JSON before trying again"
 
     # Check for '/print' - if exists, throw away original message and replace with string dump of current config
-    if msg.startswith('/print'):
+    elif msg.startswith(PRINT_CMD):
         msg = "" #clear out current msg param so we can pass it along into the normal message display below
         for key in user_config[user]:
             if key in ['token', 'session']: #don't print these
@@ -205,6 +227,23 @@ def handle_message(msg, user, ts, channel):
             #add a formatted line to the current message with the current
             #config key and it's value
             msg += ''.join([key, ": ", user_config[user][key], "\n"])
+
+    elif msg.startswith(HELP_CMD):
+        delete_message = False
+        opt = [o.encode('utf-8') for o in msg.split()]
+        msg = "" #clear out current msg param so we can pass it along into the normal message display below
+        if len(opt) == 2:
+            if opt[1] in bot_help.keys():
+                msg = bot_help[opt[1]]
+            else:
+                msg = format_generic_help_message()
+        else:
+            msg = format_generic_help_message()
+                
+    elif msg[0] == '/':
+        delete_message = False
+        msg = format_generic_help_message()
+
 
     # No config, so this is a normal message that should be formatted (or the result of a /print)
     fb = user_config[user].get('fallback')
@@ -222,7 +261,8 @@ def handle_message(msg, user, ts, channel):
         att[0][key] = user_config[user][key]
 
     # Delete the original message
-    attempt_delete(user, ts, channel)
+    if delete_message == True:
+        attempt_delete(user, ts, channel)
 
     attempt_postMessage(user, channel, att)
 
@@ -245,10 +285,27 @@ def parse_slack_output(slack_rtm_output):
                        output['channel']
     return None, None, None, None
 
+def load_command_help():
+    #m = MyStruct(field1 = "foo", field2 = "bar", field3 = "baz")
+    #   CONFIG_CMD = "/config"
+    #   PRINT_CMD = "/print"
+    #   DELETE_CMD = "/delete"
+    #   LOAD_CMD = "/load"
+    #   HELP_CMD = "/help"
+    bot_help[CONFIG_CMD] = 'Config help text goes here'
+    bot_help[PRINT_CMD] = 'Print help text goes here'
+    bot_help[DELETE_CMD] = 'Delete help text goes here'
+    bot_help[LOAD_CMD] = 'Load help text goes here'
+    bot_help[HELP_CMD] = 'Help help text goes here'
+
+    #bot_commands[CONFIG_CMD] = BotCommand(HelpText = 'Config help text here', Handler = config_cmd_handler)
+
+
 if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
     if botsc.rtm_connect():
         print "msgbot connected and running!"
+        load_command_help()
         while True:
             msg, user, ts, channel = parse_slack_output(botsc.rtm_read())
             if msg and user and ts and channel:
