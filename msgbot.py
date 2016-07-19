@@ -153,6 +153,7 @@ CONFIG_CMD = "/config"
 PRINT_CMD = "/print"
 DELETE_CMD = "/delete"
 LOAD_CMD = "/load"
+GIF_CMD = "/gif"
 HELP_CMD = "/help"
 
 def attempt_delete(user, ts, channel):
@@ -197,7 +198,7 @@ def handle_message(msg, user, ts, channel):
     """
     defer = False
     delete_message = True
-	
+    
     # Add the user
     if not user_config.IsPresent(user):
         user_config.AddUser(user)
@@ -252,7 +253,7 @@ def handle_message(msg, user, ts, channel):
             #config key and it's value
             msg += ''.join([key, ": ", user_config[user][key], "\n"])
 
-    elif cmd == '/gif':
+    elif cmd == GIF_CMD:
         defer = True
         # post a /gif command to USLACKBOT's channel
         chat_gif(user, ' '.join(opt[1:]))
@@ -341,7 +342,10 @@ def load_command_help():
     bot_help[PRINT_CMD] = 'Print help text goes here'
     bot_help[DELETE_CMD] = 'Delete help text goes here'
     bot_help[LOAD_CMD] = 'Load help text goes here'
+    bot_help[DUMP_CMD] = 'Dump help text goes here'
+    bot_help[GIF_CMD] = 'Gif help text goes here'
     bot_help[HELP_CMD] = 'Help help text goes here'
+    
 
     #bot_commands[CONFIG_CMD] = BotCommand(HelpText = 'Config help text here', Handler = config_cmd_handler)
 
