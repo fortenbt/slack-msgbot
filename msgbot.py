@@ -88,6 +88,21 @@ class MsgBotUserConfig(object):
         except Exception as e:
             print 'Error saving configuration: {0}'.format(e)
 
+    def LoadUserConfigJson(self, user_id, json_cfg):
+        try:
+            #parse income json for new config
+            cfg = json.loads(json_cfg);
+            #save off token and session so we can apply them post-import
+            sc = user_config[user]['session']
+            t = user_config[user]['token']
+
+            #set config to loaded values
+            self._config[user_id] = cfg;
+            self._config[user_id]['session'] = sc #restore session we just blew away
+            self._config[user_id]['token'] = t #restore token we just blew away
+        except Exception as e:
+            print 'Error loading configuration for user {0}: {1}'.format(user_id, e)
+
     def AddUser(self, user_id):
         self._config[user_id] = {}
         for key in self._template:
@@ -211,10 +226,24 @@ def handle_message(msg, user, ts, channel):
             attempt_delete(user, ts, channel)
         return
 
+    # Check for '/dump'
+    if cmd == '/dump':
+        att = {}
+
+        for key in user_config[user]:
+            if key in ['session', 'token']:
+                continue
+            att[key] = user_config[user][key]
+
+        msg = json.dumps(att)
+
+        attempt_delete(user, ts, channel)
+
     # Check for '/load'
     if cmd == '/load':
         try:
-            user_config[user] = json.load(msg)
+            cfg = msg[5:];
+            user_config.LoadUserConfigJson(user, cfg)
 
             #if we got here, the json.load call worked so delete the message and cut out.
             attempt_delete(user, ts, channel)
