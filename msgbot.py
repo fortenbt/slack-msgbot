@@ -3,9 +3,14 @@ import time
 import json
 from slackclient import SlackClient
 from Queue import Queue
+#from collections import namedtuple
 
 # TODO: Restructure the globals and __main__ portion of this file
 # into classes and object instantiation. Make everything cleaner.
+
+# Was going to make a tuple to handle keeping the commands, help text and a function 
+#    ptr for the handler but at this point, it's overkill. backing off of this -brs 20160715
+# BotCommand = namedtuple("BotCommand", "HelpText Handler")
 
 class MsgBotUserConfig(object):
     def __init__(self, bot_client, cfg_filename = os.getcwd() + os.path.normpath('/msgbotuserconfig.json')):
@@ -156,8 +161,15 @@ if not SLACK_BOT_KEYPHRASE:
 
 botsc = SlackClient(BOT_TOKEN)
 user_config = None
-
 defer_queue = Queue()
+bot_help = {}
+
+CONFIG_CMD = "/config"
+PRINT_CMD = "/print"
+DELETE_CMD = "/delete"
+LOAD_CMD = "/load"
+GIF_CMD = "/gif"
+HELP_CMD = "/help"
 
 def attempt_delete(user, ts, channel):
     if not user_config[user].get('session'):
@@ -176,6 +188,13 @@ def attempt_postMessage(user, channel, att):
         attachments = json.dumps(att)
     )
 
+def format_generic_help_message():
+    message = "Available commands. For more information use `/help [command]`"
+    for key, value in bot_help.iteritems() :
+        message += ''.join([key, "\n"])
+
+    return message
+
 def chat_gif(user, msg):
     channel = user_config[user].get('msgbot_dm')
     sc = user_config[user].get('session')
@@ -188,14 +207,13 @@ def chat_gif(user, msg):
         channel = channel,
     )
     print response
-
-
 def handle_message(msg, user, ts, channel):
     """
         Receives message directed at the bot and formats them accordingly.
     """
     defer = False
-
+    delete_message = True
+    
     # Add the user
     if not user_config.IsPresent(user):
         user_config.AddUser(user)
@@ -205,7 +223,7 @@ def handle_message(msg, user, ts, channel):
     cmd = opt[0]
 
     # Check for '/config'
-    if cmd == '/config':
+    if cmd == CONFIG_CMD:
 
         # we need pure ascii to use .translate with the deletechars argument
         opt = [o.encode('utf-8') for o in msg.split()]
@@ -217,7 +235,7 @@ def handle_message(msg, user, ts, channel):
         return
 
     # Check for '/delete'
-    if cmd == '/delete':
+    elif cmd == DELETE_CMD:
 
         if len(opt) < 2:
             return
@@ -240,7 +258,7 @@ def handle_message(msg, user, ts, channel):
         attempt_delete(user, ts, channel)
 
     # Check for '/load'
-    if cmd == '/load':
+    elif cmd == LOAD_CMD:
         try:
             cfg = msg[5:];
             user_config.LoadUserConfigJson(user, cfg)
@@ -254,7 +272,7 @@ def handle_message(msg, user, ts, channel):
             msg = "Unable to load configuration from JSON.\nEnsure valid JSON before trying again"
 
     # Check for '/print' - if exists, throw away original message and replace with string dump of current config
-    if cmd == '/print':
+    elif cmd == PRINT_CMD:
         msg = "" #clear out current msg param so we can pass it along into the normal message display below
         for key in user_config[user]:
             if key in ['token', 'session', 'msgbot_dm']: #don't print these
@@ -264,11 +282,27 @@ def handle_message(msg, user, ts, channel):
             #config key and it's value
             msg += ''.join([key, ": ", user_config[user][key], "\n"])
 
-    # Check for '/gif'
-    if cmd == '/gif':
+    elif cmd == GIF_CMD:
         defer = True
         # post a /gif command to USLACKBOT's channel
         chat_gif(user, ' '.join(opt[1:]))
+
+    elif cmd == HELP_CMD:
+        delete_message = False
+        opt = [o.encode('utf-8') for o in msg.split()]
+        msg = "" #clear out current msg param so we can pass it along into the normal message display below
+        if len(opt) == 2:
+            if opt[1] in bot_help.keys():
+                msg = bot_help[opt[1]]
+            else:
+                msg = format_generic_help_message()
+        else:
+            msg = format_generic_help_message()
+                
+    elif cmd == '/':
+        delete_message = False
+        msg = format_generic_help_message()
+
 
     # No config, so this is a normal message that should be formatted (or the result of a /print)
     fb = user_config[user].get('fallback')
@@ -286,7 +320,8 @@ def handle_message(msg, user, ts, channel):
         att[0][key] = user_config[user][key]
 
     # Delete the original message
-    attempt_delete(user, ts, channel)
+    if delete_message == True:
+        attempt_delete(user, ts, channel)
 
     if not defer:
         attempt_postMessage(user, channel, att)
@@ -325,6 +360,25 @@ def parse_slack_output(slack_rtm_output):
                        output['channel']
     return None, None, None, None
 
+def load_command_help():
+    #m = MyStruct(field1 = "foo", field2 = "bar", field3 = "baz")
+    #   CONFIG_CMD = "/config"
+    #   PRINT_CMD = "/print"
+    #   DELETE_CMD = "/delete"
+    #   LOAD_CMD = "/load"
+    #   HELP_CMD = "/help"
+    bot_help[CONFIG_CMD] = 'Config help text goes here'
+    bot_help[PRINT_CMD] = 'Print help text goes here'
+    bot_help[DELETE_CMD] = 'Delete help text goes here'
+    bot_help[LOAD_CMD] = 'Load help text goes here'
+    bot_help[DUMP_CMD] = 'Dump help text goes here'
+    bot_help[GIF_CMD] = 'Gif help text goes here'
+    bot_help[HELP_CMD] = 'Help help text goes here'
+    
+
+    #bot_commands[CONFIG_CMD] = BotCommand(HelpText = 'Config help text here', Handler = config_cmd_handler)
+
+
 if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
     print 'Starting up...'
@@ -332,6 +386,7 @@ if __name__ == "__main__":
         BOT_ID = (u.id for u in botsc.server.users if u.name == 'msgbot').next()
         user_config = MsgBotUserConfig(botsc)
         print "msgbot ({0}) connected and running!".format(BOT_ID)
+        load_command_help()
         while True:
             msg, user, ts, channel = parse_slack_output(botsc.rtm_read())
             if msg and user and ts and channel:
