@@ -173,6 +173,7 @@ CONFIG_CMD = "/config"
 PRINT_CMD = "/print"
 DELETE_CMD = "/delete"
 LOAD_CMD = "/load"
+DUMP_CMD = '/dump'
 GIF_CMD = "/gif"
 HELP_CMD = "/help"
 
@@ -194,7 +195,7 @@ def attempt_postMessage(user, channel, att):
     )
 
 def format_generic_help_message():
-    message = "Available commands. For more information use `/help [command]`"
+    message = "Available commands. For more information use `/help [command]`\n"
     for key, value in bot_help.iteritems() :
         message += ''.join([key, "\n"])
 
@@ -212,6 +213,7 @@ def chat_gif(user, msg):
         channel = channel,
     )
     print response
+
 def handle_message(msg, user, ts, channel):
     """
         Receives message directed at the bot and formats them accordingly.
@@ -250,7 +252,7 @@ def handle_message(msg, user, ts, channel):
         return
 
     # Check for '/dump'
-    if cmd == '/dump':
+    if cmd == DUMP_CMD:
         att = {}
 
         for key in user_config[user]:
@@ -370,15 +372,16 @@ def load_command_help():
     #   CONFIG_CMD = "/config"
     #   PRINT_CMD = "/print"
     #   DELETE_CMD = "/delete"
+    #   DUMP_CMD = "/dump"
     #   LOAD_CMD = "/load"
     #   HELP_CMD = "/help"
-    bot_help[CONFIG_CMD] = 'Config help text goes here'
-    bot_help[PRINT_CMD] = 'Print help text goes here'
-    bot_help[DELETE_CMD] = 'Delete help text goes here'
-    bot_help[LOAD_CMD] = 'Load help text goes here'
-    bot_help[DUMP_CMD] = 'Dump help text goes here'
-    bot_help[GIF_CMD] = 'Gif help text goes here'
-    bot_help[HELP_CMD] = 'Help help text goes here'
+    bot_help[CONFIG_CMD] = 'Config allows you to set individual properties of your sexy msgbot message box. For options, see the github readme.'
+    bot_help[PRINT_CMD] = 'Print your config to the slack channel for... bragging rights?'
+    bot_help[DELETE_CMD] = 'I\'m going to level with you and say that I haven\'t the foggiest idea what this does.'
+    bot_help[LOAD_CMD] = 'Loads a properly formatted json string into your msgbot config. Recommended to use with results from /dump'
+    bot_help[DUMP_CMD] = 'Dump your config to a json string so you can save and re-load it later. Cool for swapping config\'s for the msgbot adept.'
+    bot_help[GIF_CMD] = 'Wanna gif in your sweet-ass custom message box? That\'s what this bish does. "Computer says no" response may be undefined.'
+    bot_help[HELP_CMD] = 'Look, seriously, if you need help with /help you are well beyond helping.'
     
 
     #bot_commands[CONFIG_CMD] = BotCommand(HelpText = 'Config help text here', Handler = config_cmd_handler)
