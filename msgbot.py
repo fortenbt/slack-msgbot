@@ -39,21 +39,26 @@ class MsgBotUserConfig(object):
         try:
             with open(cfg_filename) as cfg_file:
                 self._config = json.load(cfg_file)
-            for user_id in self._config:
-                if self._config[user_id].get('token'):
-                    self._config[user_id]['session'] = SlackClient(self._config[user_id]['token'])
-                    try:
-                        sc = self._config[user_id]['session']
-                        sc.rtm_connect()
-                        resp = sc.api_call('im.open', user=BOT_ID)
-                        self._config[user_id]['msgbot_dm'] = resp['channel']['id']
-                    except:
-                        print 'Error opening im to msgbot from {0}'.format((u.name for u in sc.server.users if u.id==user_id).next())
-                        self._config[user_id]['session'] = None
-                        self._config[user_id]['msgbot_dm'] = None
-        except:
+        except BaseException as e:
             print 'Error loading configuration from file: {0}. Using empty config.'.format(cfg_filename)
+            print '   exception: {}'.format(e)
             self._config = {}
+
+        for user_id in self._config:
+            print 'user_id = {}'.format(user_id)
+            if self._config[user_id].get('token'):
+                self._config[user_id]['session'] = SlackClient(self._config[user_id]['token'])
+                try:
+                    sc = self._config[user_id]['session']
+                    if not sc.rtm_connect():
+                        raise Exception('Error connecting to real-time messaging API')
+                    resp = sc.api_call('im.open', user=BOT_ID)
+                    self._config[user_id]['msgbot_dm'] = resp['channel']['id']
+                except BaseException as e:
+                    print 'Error opening im to msgbot from {0}'.format(user_id)
+                    print '   exception: {}'.format(e)
+                    self._config[user_id]['session'] = None
+                    self._config[user_id]['msgbot_dm'] = None
 
     def __getitem__(self, i):
         return self._config[i]
@@ -351,8 +356,8 @@ def parse_slack_output(slack_rtm_output):
 
             # Otherwise, is this a 'msgbot' message...
             if output and 'text' in output and output['text'].startswith(BOT_KEYPHRASE):
-                username = (u.name for u in botsc.server.users if output['user'] == u.id).next()
-                print '<{0}> {1}: {2}'.format(output['channel'], username, output['text'].encode('utf-8'))
+                username = (botsc.server.users[u].name for u in botsc.server.users if output['user'] == botsc.server.users[u].id).next()
+                print '<{0}:{1}> {2}: {3}'.format(output['channel'], output['ts'], username, output['text'].encode('utf-8'))
                 # return text after the msgbot text, leading whitespace removed
                 return output['text'][len(BOT_KEYPHRASE):].strip(),\
                        output['user'],\
@@ -383,7 +388,7 @@ if __name__ == "__main__":
     READ_WEBSOCKET_DELAY = 1 # 1 second delay between reading from firehose
     print 'Starting up...'
     if botsc.rtm_connect():
-        BOT_ID = (u.id for u in botsc.server.users if u.name == 'msgbot').next()
+        BOT_ID = (botsc.server.users[u].id for u in botsc.server.users if botsc.server.users[u].name == 'msgbot').next()
         user_config = MsgBotUserConfig(botsc)
         print "msgbot ({0}) connected and running!".format(BOT_ID)
         load_command_help()
